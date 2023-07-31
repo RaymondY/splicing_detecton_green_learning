@@ -26,6 +26,9 @@ def prepare_xgb_data(input_feature_set, target_feature_set,
     # coarse_surface_prediction_set is a list of numpy arrays
     if coarse_surface_prediction_set:
         for i in range(len(coarse_surface_prediction_set)):
+            print(f"coarse_surface_prediction_set[{i}].shape: "
+                    f"{coarse_surface_prediction_set[i].shape}")
+            print(f"input_feature_set.shape: {input_feature_set.shape}")
             input_feature_set = np.concatenate(
                 (input_feature_set, coarse_surface_prediction_set[i]), axis=1)
     gc.collect()
@@ -75,8 +78,8 @@ def train_lab_representation(lab_set):
     timer.register("lab model saved")
 
 
-def save_all_features(lab_set, test_lab_set,
-                      surface_set, test_surface_set):
+def save_all_features(lab_set, surface_set, 
+                      test_lab_set,test_surface_set):
     # load models
     lab_ssl_model = torch.load(
         os.path.join(config.model_dir, f'{pre_fix}_lab_ssl_model.pth'))
@@ -218,12 +221,11 @@ def train_surface_decision_all():
     test_coarse_surface_prediction_set = []
     for level_index in range(config.level_num, 0, -1):
         # upsample the previous level coarse surface prediction
-        for coarse_surface_prediction in coarse_surface_prediction_set:
-            coarse_surface_prediction = upsample_x2_lanczos(coarse_surface_prediction)
-        gc.collect()
-        for test_coarse_surface_prediction in test_coarse_surface_prediction_set:
-            test_coarse_surface_prediction = \
-                upsample_x2_lanczos(test_coarse_surface_prediction)
+        for i in range(config.level_num - level_index):
+            coarse_surface_prediction_set[i] = \
+                upsample_x2_lanczos(coarse_surface_prediction_set[i])
+            test_coarse_surface_prediction_set[i] = \
+                upsample_x2_lanczos(test_coarse_surface_prediction_set[i])
         gc.collect()
 
         lab_feature_level_set = np.load(
@@ -235,19 +237,21 @@ def train_surface_decision_all():
         test_surface_feature_level_set = np.load(
             os.path.join(config.model_dir, f"{pre_fix}_test_surface_level_{level_index}.npy"))
         coarse_surface_prediction, test_coarse_surface_prediction = \
-            train_surface_decision_level(lab_feature_level_set, test_lab_feature_level_set,
-                                         surface_feature_level_set, test_surface_feature_level_set,
+            train_surface_decision_level(lab_feature_level_set, 
+                                         surface_feature_level_set,
+                                         test_lab_feature_level_set, 
+                                         test_surface_feature_level_set,
                                          level_index,
                                          coarse_surface_prediction_set, 
                                          test_coarse_surface_prediction_set)
-        coarse_surface_prediction_set.append(coarse_surface_prediction)
-        test_coarse_surface_prediction_set.append(test_coarse_surface_prediction)
+        coarse_surface_prediction_set.append(deepcopy(coarse_surface_prediction))
+        test_coarse_surface_prediction_set.append(deepcopy(test_coarse_surface_prediction))
         del lab_feature_level_set, test_lab_feature_level_set, \
             surface_feature_level_set, test_surface_feature_level_set, \
             coarse_surface_prediction, test_coarse_surface_prediction
         gc.collect()
         timer.register(f"surface decision level {level_index} trained")
-                                         
+   
 
 if __name__ == '__main__':
     print(config.device)
@@ -267,8 +271,8 @@ if __name__ == '__main__':
     # timer.register("surface model trained")
 
     # # save all features
-    # save_all_features(lab_set, test_lab_set,
-    #                   surface_set, test_surface_set)
+    # save_all_features(lab_set, surface_set, 
+    #                   test_lab_set, test_surface_set)
     # timer.register("all features saved")
 
 

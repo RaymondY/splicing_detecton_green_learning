@@ -34,6 +34,6 @@ class DefaultConfig:
     level_num = 5
 
     # RFT
-    selected_num_list = [50, 150, 500, 2000]
+    selected_num_list = [50, 150, 500, 1000, 2000]
 
 print(torch.cuda.is_available())
