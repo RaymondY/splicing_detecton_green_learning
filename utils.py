@@ -84,8 +84,8 @@ def RGB2YUV(image_set):
     del U_trans_matrix
     del V_trans_matrix
     gc.collect()
-    return Y_set, U_set, V_set
-    # return torch.cat([Y_set, U_set, V_set], dim=1)
+    # return Y_set, U_set, V_set
+    return torch.cat([Y_set, U_set, V_set], dim=1)
 
 
 def RGB2LAB(image_set):
@@ -138,14 +138,25 @@ def load_casia_v2_lab(index=None):
         surface_set = torch.stack(surface_set)
         # edge_set = torch.stack(edge_set)
 
-        # turn to lab
-        lab_set = RGB2LAB(image_set)
+        # # !turn to lab
+        # lab_set = RGB2LAB(image_set)
+        # del image_set
+        # gc.collect()
+        # return lab_set, surface_set
+
+        # !turn to yuv
+        image_set = image_set * 255
+        yuv_set = RGB2YUV(image_set)
         del image_set
         gc.collect()
-        return lab_set, surface_set
+        return yuv_set, surface_set
+
+        # return image_set, surface_set
     
     test_image_set, image_set, test_surface_set, surface_set = \
         train_test_split(image_set, surface_set, test_size=0.8, shuffle=False)
+    # _, image_set, _, surface_set = \
+    #     train_test_split(image_set, surface_set, test_size=0.75, shuffle=True)
     gc.collect()
 
     # to tensor
@@ -154,14 +165,25 @@ def load_casia_v2_lab(index=None):
     test_image_set = torch.stack(test_image_set)
     test_surface_set = torch.stack(test_surface_set)
 
-    # turn to lab
-    lab_set = RGB2LAB(image_set)
-    test_lab_set = RGB2LAB(test_image_set)
+    # # !turn to lab
+    # lab_set = RGB2LAB(image_set)
+    # test_lab_set = RGB2LAB(test_image_set)
+    # del image_set
+    # del test_image_set
+    # gc.collect()
+    # return lab_set, surface_set, test_lab_set, test_surface_set
+
+    # !turn to yuv
+    image_set = image_set * 255
+    test_image_set = test_image_set * 255
+    yuv_set = RGB2YUV(image_set)
+    test_yuv_set = RGB2YUV(test_image_set)
     del image_set
     del test_image_set
     gc.collect()
-
-    return lab_set, surface_set, test_lab_set, test_surface_set
+    return yuv_set, surface_set, test_yuv_set, test_surface_set
+    
+    # return image_set, surface_set, test_image_set, test_surface_set
 
 
 def load_casia_v2_yuv(index=None):
@@ -286,9 +308,9 @@ def load_columbia_yuv(index=None):
     surface_set = torch.stack(surface_set)
 
     # to YUV
-    y_set, u_set, v_set = RGB2YUV(image_set)
+    yuv_set = RGB2YUV(image_set)
     if index is not None:
         print(name_list[0])
     
-    return y_set, u_set, v_set, surface_set
+    return yuv_set, surface_set
 

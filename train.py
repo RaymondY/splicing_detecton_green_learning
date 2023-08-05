@@ -6,8 +6,6 @@ import pickle
 import numpy as np
 from copy import deepcopy
 import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import xgboost as xgb
 from matplotlib import pyplot as plt
 
@@ -199,7 +197,7 @@ def train_surface_decision_level(lab_feature_level_set,
             test_sample_num, height, width, 1)
         test_surface_prediction_set.append(test_surface_prediction)
 
-        del xgb_model, selected_input_feature_set, selected_test_input_feature_set
+        del rft, xgb_model, selected_input_feature_set, selected_test_input_feature_set
         gc.collect()
         timer.register(f"xgb model level {level_index} channel {i} predicted")
 
@@ -220,6 +218,7 @@ def train_surface_decision_all():
     coarse_surface_prediction_set = []
     test_coarse_surface_prediction_set = []
     for level_index in range(config.level_num, 0, -1):
+        # !记得删除RFT文件
         # upsample the previous level coarse surface prediction
         for i in range(config.level_num - level_index):
             coarse_surface_prediction_set[i] = \
@@ -229,9 +228,9 @@ def train_surface_decision_all():
         gc.collect()
 
         lab_feature_level_set = np.load(
-            os.path.join(config.model_dir, f"{pre_fix}_lab_level_{level_index}.npy"))
+            os.path.join(config.model_dir, f"{pre_fix}_level_{level_index}.npy"))
         test_lab_feature_level_set = np.load(
-            os.path.join(config.model_dir, f"{pre_fix}_test_lab_level_{level_index}.npy"))
+            os.path.join(config.model_dir, f"{pre_fix}_test_level_{level_index}.npy"))
         surface_feature_level_set = np.load(
             os.path.join(config.model_dir, f"{pre_fix}_surface_level_{level_index}.npy"))
         test_surface_feature_level_set = np.load(
@@ -244,36 +243,41 @@ def train_surface_decision_all():
                                          level_index,
                                          coarse_surface_prediction_set, 
                                          test_coarse_surface_prediction_set)
+        
         coarse_surface_prediction_set.append(deepcopy(coarse_surface_prediction))
         test_coarse_surface_prediction_set.append(deepcopy(test_coarse_surface_prediction))
+        
         del lab_feature_level_set, test_lab_feature_level_set, \
             surface_feature_level_set, test_surface_feature_level_set, \
             coarse_surface_prediction, test_coarse_surface_prediction
         gc.collect()
         timer.register(f"surface decision level {level_index} trained")
-   
+
+        if level_index <= 3:
+            break
+                                         
 
 if __name__ == '__main__':
     print(config.device)
-    # # !First time run:
-    # # load data
-    # lab_set, surface_set, \
-    #     test_lab_set, test_surface_set = \
-    #         load_casia_v2_lab()
-    # timer.register("data loaded")
+    # !First time run:
+    # load data
+    lab_set, surface_set, \
+        test_lab_set, test_surface_set = \
+            load_casia_v2_lab()
+    timer.register("data loaded")
 
-    # # train lab representation
-    # train_lab_representation(lab_set)
-    # timer.register("lab model trained")
+    # train lab representation
+    train_lab_representation(lab_set)
+    timer.register("lab model trained")
 
-    # # train surface representation
-    # train_surface_representation(surface_set)
-    # timer.register("surface model trained")
+    # train surface representation
+    train_surface_representation(surface_set)
+    timer.register("surface model trained")
 
-    # # save all features
-    # save_all_features(lab_set, surface_set, 
-    #                   test_lab_set, test_surface_set)
-    # timer.register("all features saved")
+    # save all features
+    save_all_features(lab_set, surface_set, 
+                      test_lab_set, test_surface_set)
+    timer.register("all features saved")
 
 
     # !Comment out the above code and run the following code 

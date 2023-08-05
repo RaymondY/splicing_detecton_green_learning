@@ -102,9 +102,9 @@ class TorchSaab(nn.Module):
         sample_patches = sample_patches.reshape(n*windows, dim)  # <n.windows, dim>
 
         # print(f"sample_patches: {sample_patches.size()}")
-        if subsample and sample_patches.size(0) > 50000000:
+        if subsample and sample_patches.size(0) > 10000000:
             # subsample x randomly, reduce computation
-            subsample_num = 50000000 
+            subsample_num = 10000000 
             index = np.random.choice(sample_patches.size(0), subsample_num, replace=False)
             sample_patches = sample_patches[index]
             gc.collect()
@@ -173,10 +173,10 @@ class TorchSaab(nn.Module):
         sample_patches = sample_patches.reshape(
             self.in_channels, -1, self.kernel_size[0]*self.kernel_size[1])  # <c, nwh, k0k1>
         
-        if subsample and self.in_channels * sample_patches.size(1) > 50000000:
+        if subsample and self.in_channels * sample_patches.size(1) > 10000000:
             # some problems here!!
-            subsample_num = 50000000 // self.in_channels
-            subsample_num = subsample_num if subsample_num > 100000 else 100000
+            subsample_num = 10000000 // self.in_channels
+            subsample_num = subsample_num if subsample_num > 1000000 else 1000000
             print(f"subsample_num: {subsample_num}")
             # subsample_num = 50000000
             new_sample_patches = torch.zeros(
@@ -185,7 +185,7 @@ class TorchSaab(nn.Module):
                 index = np.random.choice(sample_patches.size(1), subsample_num, replace=False)
                 new_sample_patches[c] = sample_patches[c][index]
                 gc.collect()
-            sample_patches = new_sample_patches
+            sample_patches = deepcopy(new_sample_patches)
             del new_sample_patches
             gc.collect()
             
@@ -201,7 +201,9 @@ class TorchSaab(nn.Module):
 
         rank_ac = self.kernel_size[0]*self.kernel_size[1]-1
 
+        print("SVD")
         U, s, V = torch.linalg.svd(training_data, full_matrices=False)
+        print("SVD done")
         
         self.ac_kernels.data = V[:, :rank_ac, :]
         # print(f"ac_kernels shape: {self.ac_kernels.shape}")
@@ -305,8 +307,10 @@ class TorchSaab(nn.Module):
         if self.padding > 0:
             x = F.pad(x, (self.padding, self.padding,
                       self.padding, self.padding), mode='reflect')
+        gc.collect()
         # <n, dim, windows>, where dim=c.kernelsize[0].kernelsize[1]
         sample_patches = F.unfold(x, self.kernel_size, stride=self.stride)
+        print("unfold finished")
         sample_patches = sample_patches.permute(0, 2, 1)  # <n, windows, dim>
         # <n, w, h, c, k0k1>dim = self.kernel_size[0]*self.kernel_size[1]
         sample_patches = sample_patches.reshape(
@@ -322,14 +326,21 @@ class TorchSaab(nn.Module):
         num_channels = self.ac_kernels.shape[-1]
         dc = dc * num_channels * 1.0 / np.sqrt(num_channels)
         ac = torch.matmul(sample_patches_ac, self.ac_kernels.permute(0, 2, 1))
+        print("dc, ac finished")
         transformed = torch.cat([dc, ac], dim=2)  # <c, n.windows, k0.k1>
         del dc, ac, sample_patches_ac
         gc.collect()
         # transformed = transformed.reshape(
         #     self.in_channels, n, self.w, self.h, self.kernel_size[0]*self.kernel_size[1])
         transformed = transformed.reshape(self.in_channels, n, self.w, self.h, -1)
+        gc.collect()
+        print("transformed 1 finished")
         transformed = transformed.permute(1, 0, 4, 2, 3)
+        gc.collect()
+        print("transformed 2 finished")
         transformed = transformed.reshape(n, -1, self.w, self.h)
+        gc.collect()
+        print("transformed 3 finished")
         return transformed
 
     def inverse_saab(self, x):

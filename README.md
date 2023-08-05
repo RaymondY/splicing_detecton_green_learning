@@ -20,4 +20,5 @@ pip install opencv-python
 
 ## Tips
 1. Use nohup and & to run the program in the background
-```
+2. LAB color space won't work well. I applied YUV instead but I don't have time to change the name of the variable.
+3. Professor have a new idea about the diagram. Please ask him for the details.

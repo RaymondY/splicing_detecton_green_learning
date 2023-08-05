@@ -7,6 +7,14 @@ nohup.out
 /models/*
 !.gitkeep
 
+models copy/
+temp copy/
+nohup copy.out
+
+models copy 2/
+temp copy 2/
+nohup copy 2.out
+
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

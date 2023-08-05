@@ -140,16 +140,13 @@ def predict_surface_all(lab_set, surface_set=None):
     timer.register("lab feature set extracted")
 
     coarse_surface_prediction_set = []
-    test_coarse_surface_prediction_set = []
     for level_index in range(config.level_num, 0, -1):
         # !记得删除RFT文件
-        # # upsample the previous level coarse surface prediction
-        # for i in range(config.level_num - level_index):
-        #     coarse_surface_prediction_set[i] = \
-        #         upsample_x2_lanczos(coarse_surface_prediction_set[i])
-        #     test_coarse_surface_prediction_set[i] = \
-        #         upsample_x2_lanczos(test_coarse_surface_prediction_set[i])
-        # gc.collect()
+        # upsample the previous level coarse surface prediction
+        for i in range(config.level_num - level_index):
+            coarse_surface_prediction_set[i] = \
+                upsample_x2_lanczos(coarse_surface_prediction_set[i])
+        gc.collect()
 
         lab_feature_level_set = lab_feature_set[level_index - 1]
         surface_prediction_set = \
@@ -157,7 +154,7 @@ def predict_surface_all(lab_set, surface_set=None):
                                   level_index, 
                                   coarse_surface_prediction_set)
         
-        # coarse_surface_prediction_set.append(deepcopy(surface_prediction_set))
+        coarse_surface_prediction_set.append(deepcopy(surface_prediction_set))
 
         del lab_feature_level_set, surface_prediction_set
         gc.collect()
@@ -172,7 +169,8 @@ if __name__ == '__main__':
     # load data (if provide index for load function, only load the specified data)
     # index could be a list or a number or just one number
     # test_index = 0 means only save the first sample's intermediate results
-    lab_set, surface_set = load_casia_v2_lab(4)
+    lab_set, surface_set = load_casia_v2_lab(1)
+    # lab_set, surface_set = load_columbia_yuv(0)
     timer.register("data loaded")
 
     # predict surface
